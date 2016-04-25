@@ -7,6 +7,5 @@
 *.iml
 dist/
 target/
-test/
 tmp/
 node_modules/
