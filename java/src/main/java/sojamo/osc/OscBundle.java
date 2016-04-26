@@ -1,6 +1,8 @@
 package sojamo.osc;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 
 public class OscBundle implements OscPacket {
 

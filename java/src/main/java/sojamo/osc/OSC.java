@@ -22,37 +22,17 @@ public class OSC {
     final private Object app;
     final private ArrayBlockingQueue<OscMessage> queue;
     final private Collection<OscListener> listeners = new LinkedHashSet<>();
-    final private ExecutorService exec = Executors.newFixedThreadPool(1);
     final private Schedule schedule;
-
-    private DatagramSocket socket;
-
+    private ITransfer transfer;
 
     /**
      * Creates a now OSC instance with a DatagramSocket listening on port thePort.
      */
     public OSC(Object theApp, int thePort) {
-
         this(theApp);
-
-        /* open a UDP connection */
-        try {
-            socket = new DatagramSocket(thePort);
-            try {
-                exec.execute(run(socket, packetSize, new DatagramPacketListener() {
-                    public void invoke(final byte[] theData, final SocketAddress theAddress) {
-                        /* pass the incoming data to the parser */
-                        OscParser.byteArrayToPacket(theData, schedule, OscTimetag.TIMETAG_NOW);
-                    }
-                }));
-
-            } catch (Exception e) {
-                debug("Can't create socket.", e.getMessage());
-            }
-        } catch (SocketException e1) {
-            debug("Can't create socket. ", e1.getMessage());
-        }
+        transfer = new UDPTransfer(this, thePort);
     }
+
 
     public OSC(Object theApp) {
 
@@ -88,6 +68,10 @@ public class OSC {
 
     }
 
+    public Schedule schedule() {
+        return schedule;
+    }
+
 
     public OscListener subscribeWithParameters(final Object theObject, final String theMethod, final String theAddressPattern) {
         return dummy;
@@ -121,43 +105,29 @@ public class OSC {
     }
 
 
-    public OSC send(final NetAddress theAddr, final String theAddressPattern, Object... theArguments) {
-        sendPacket(theAddr, new OscMessage(theAddressPattern, Arrays.asList(theArguments)));
+    public OSC send(final NetAddress theNetAddress, final String theAddressPattern, Object... theArguments) {
+        sendPacket(theNetAddress, new OscMessage(theAddressPattern, Arrays.asList(theArguments)));
         return this;
     }
 
 
-    public OSC send(final NetAddress theAddr, final OscMessage theMessage) {
-        sendPacket(theAddr, theMessage);
+    public OSC send(final NetAddress theNetAddress, final OscMessage theMessage) {
+        sendPacket(theNetAddress, theMessage);
         return this;
     }
 
 
-    public OSC send(final NetAddress theAddr, final OscBundle theBundle) {
-        sendPacket(theAddr, theBundle);
+    public OSC send(final NetAddress theNetAddress, final OscBundle theBundle) {
+        sendPacket(theNetAddress, theBundle);
         return this;
     }
 
 
     protected OSC sendPacket(final NetAddress theNetAddress, final OscPacket thePacket) {
-        try {
-            final byte[] bytes = thePacket.getBytes();
-            DatagramPacket myPacket = new DatagramPacket(bytes, bytes.length, theNetAddress.getAddress(), theNetAddress.getPort());
-            send(myPacket);
-        } catch (NullPointerException npe) {
-            debug(String.format("Can't send message (%s) : %s", theNetAddress.getAddress().getCanonicalHostName(), npe.getMessage()));
-        }
+        transfer.send(theNetAddress, thePacket);
         return this;
     }
 
-    protected OSC send(final DatagramPacket thePacket) {
-        try {
-            socket.send(thePacket);
-        } catch (Exception e) {
-            debug(String.format("Can't send message (%s) : %s", thePacket.getAddress().getCanonicalHostName(), e.getMessage()));
-        }
-        return this;
-    }
 
     protected OSC invoke(final Object theObject,
                          final String theMethodName,
@@ -208,29 +178,8 @@ public class OSC {
     }
 
 
-    static private Runnable run(final DatagramSocket theSocket, final int theDatagramSize, final DatagramPacketListener theListener) {
-        return new Runnable() {
-            public void run() {
-                while (!theSocket.isClosed()) {
-                    byte[] receiveData = new byte[theDatagramSize];
-                    DatagramPacket packet = new DatagramPacket(receiveData, receiveData.length);
-                    try {
-                        theSocket.receive(packet);
-                        byte[] data = new byte[packet.getLength()];
-                        System.arraycopy(packet.getData(), packet.getOffset(), data, 0, packet.getLength());
-                        theListener.invoke(data, packet.getSocketAddress());
-
-                    } catch (IOException e) {
-                        debug("Can't receive messages,", e.getMessage());
-                    }
-                }
-            }
-        };
-    }
-
-
     protected void dispose() {
-        socket.close();
+        transfer.close();
     }
 
 
@@ -245,6 +194,85 @@ public class OSC {
 
     interface DatagramPacketListener {
         void invoke(final byte[] theData, final SocketAddress theAddress);
+    }
+
+    private static class UDPTransfer implements ITransfer {
+
+        private DatagramSocket socket;
+        final private ExecutorService exec = Executors.newFixedThreadPool(1);
+
+        UDPTransfer(final OSC theOSC, final int thePort) {
+
+
+             /* open a UDP connection */
+            try {
+                socket = new DatagramSocket(thePort);
+                try {
+                    exec.execute(run(socket, packetSize, new DatagramPacketListener() {
+                        public void invoke(final byte[] theData, final SocketAddress theAddress) {
+                        /* pass the incoming data to the parser */
+                            OscParser.byteArrayToPacket(theData, theOSC.schedule(), OscTimetag.TIMETAG_NOW);
+                        }
+                    }));
+
+                } catch (Exception e) {
+                    debug("Can't create socket.", e.getMessage());
+                }
+            } catch (SocketException e1) {
+                debug("Can't create socket. ", e1.getMessage());
+            }
+        }
+
+        private Runnable run(final DatagramSocket theSocket,
+                             final int theDatagramSize,
+                             final DatagramPacketListener theListener) {
+            return new Runnable() {
+                public void run() {
+                    while (!theSocket.isClosed()) {
+                        byte[] receiveData = new byte[theDatagramSize];
+                        DatagramPacket packet = new DatagramPacket(receiveData, receiveData.length);
+                        try {
+                            theSocket.receive(packet);
+                            byte[] data = new byte[packet.getLength()];
+                            System.arraycopy(packet.getData(), packet.getOffset(), data, 0, packet.getLength());
+                            theListener.invoke(data, packet.getSocketAddress());
+
+                        } catch (IOException e) {
+                            debug("Can't receive messages,", e.getMessage());
+                        }
+                    }
+                }
+            };
+        }
+
+        @Override
+        public void send(final NetAddress theNetAddress, final OscPacket thePacket) {
+            try {
+                final byte[] bytes = thePacket.getBytes();
+                DatagramPacket myPacket = new DatagramPacket(bytes, bytes.length, theNetAddress.getAddress(), theNetAddress.getPort());
+                send(myPacket);
+            } catch (NullPointerException npe) {
+                debug(String.format("Can't send message (%s) : %s", theNetAddress.getAddress().getCanonicalHostName(), npe.getMessage()));
+            }
+        }
+
+        private void send(final DatagramPacket thePacket) {
+            try {
+                socket.send(thePacket);
+            } catch (Exception e) {
+                debug(String.format("Can't send message (%s) : %s", thePacket.getAddress().getCanonicalHostName(), e.getMessage()));
+            }
+        }
+
+        @Override
+        public void receive(OscPacket thePacket) {
+
+        }
+
+        @Override
+        public void close() {
+            socket.close();
+        }
     }
 
 

@@ -21,11 +21,10 @@ public class NetAddress extends InetSocketAddress {
 
     @Override
     public String toString() {
-        return new StringBuilder().
-                append("NetAddress{").
-                append(" address=").append(getAddress().getHostAddress()).
-                append(", hostname=").append(getHostName()).
-                append(", port=").append(getPort()).
-                append(" }").toString();
+        return "NetAddress{" +
+                " address=" + getAddress().getHostAddress() +
+                ", hostname=" + getHostName() +
+                ", port=" + getPort() +
+                " }";
     }
 }
