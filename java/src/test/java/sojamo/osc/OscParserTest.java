@@ -6,7 +6,6 @@ import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static sojamo.osc.OSC.*;
 
 public class OscParserTest {
 
@@ -20,8 +19,8 @@ public class OscParserTest {
 
     @Test
     public void testMessageToByteArray() throws Exception {
-        byte[] bytes = OscParser.messageToByteArray(m1); /* message to bytes */
-        OscMessage m2 = OscParser.byteArrayToMessage(bytes); /* bytes to message */
+        byte[] bytes = OscParser.messageToBytes(m1); /* message to bytes */
+        OscMessage m2 = OscParser.bytesToMessage(bytes); /* bytes to message */
         assertTrue(m1.getAddress().equals(m2.getAddress()));
         assertTrue(m1.getTypetag().equals(m2.getTypetag()));
     }

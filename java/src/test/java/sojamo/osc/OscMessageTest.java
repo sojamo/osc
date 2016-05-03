@@ -56,13 +56,14 @@ public class OscMessageTest {
 
     @Test
     public void testGetTimetag() throws Exception {
+        /* TODO */
     }
 
     @Test
     public void testParseArguments() throws Exception {
 
-        byte[] bytes = OscParser.messageToByteArray(m2); /* message to bytes */
-        OscMessage m = OscParser.byteArrayToMessage(bytes); /* bytes to message */
+        byte[] bytes = OscParser.messageToBytes(m2); /* message to bytes */
+        OscMessage m = OscParser.bytesToMessage(bytes); /* bytes to message */
 
         assertEquals(Integer.class, m.get(0).getClass());
         int v0 = m.getIntAt(0);

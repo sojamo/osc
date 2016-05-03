@@ -2,6 +2,8 @@ package sojamo.osc;
 
 import org.junit.Test;
 
+import java.util.Map;
+
 import static org.junit.Assert.*;
 
 public class OscBundleTest {
@@ -16,11 +18,11 @@ public class OscBundleTest {
         OscBundle b1 = new OscBundle();
         b1.add(m1);
         b1.add(m2, m3);
-        assertEquals(b1.getPackets().size(), 3);
+        assertEquals(3, b1.getPackets().size());
 
         OscBundle b2 = new OscBundle();
         b2.add(b1, m1, m2);
-        assertEquals(b2.getPackets().size(), 3);
+        assertEquals(3, b2.getPackets().size());
 
     }
 
@@ -51,18 +53,48 @@ public class OscBundleTest {
 
     @Test
     public void testAdd() throws Exception {
+        /* b1: bundle with 2 elements */
+        OscBundle b1 = new OscBundle();
+        b1.add(m1, m2);
+        assertEquals(2, b1.getPackets().size());
 
-    }
+        /* b2: bundle with 3 elements, nested. */
+        OscBundle b2 = new OscBundle();
+        b2.add(m1, m2);
 
-    @Test
-    public void testAdd1() throws Exception {
+        OscBundle b3 = new OscBundle();
+        b3.add(m1, m2, m3);
+        b2.add(b3);
 
+        /* bundle b2 has 3 elements at top level,
+         * nested elements are not counted.
+         */
+        assertEquals(3, b2.getPackets().size());
     }
 
     @Test
     public void testGetPackets() throws Exception {
+        /* 1. create Bundle
+         * 2. convert Bundle into bytes and then back into a Bundle
+         * 3. request all messages from a Bundle with OscParser.bytesToPackets()
+         */
+
+        /* b1: Bundle with 3 messages */
         OscBundle b1 = new OscBundle();
         b1.add(m1, m2, m3);
-        byte[] bytes = b1.getBytes();
+        byte[] bytes1 = b1.getBytes();
+        Map r1 = OscParser.bytesToPackets(bytes1);
+        assertEquals(3, r1.size());
+
+        /* b2: Nested Bundle with a total of 5 messages */
+        OscBundle b2 = new OscBundle();
+        OscBundle b3 = new OscBundle();
+        b3.add(m1, m2);
+        b2.add(m1, m2, m3, b3);
+        assertEquals(4, b2.getPackets().size()); /* 3 messages + 1 bundle */
+        byte[] bytes2 = b2.getBytes();
+        Map r2 = OscParser.bytesToPackets(bytes2);
+        assertEquals(5, r2.size()); /* 5 messages parsed from nested bundle */
+
     }
 }
