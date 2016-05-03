@@ -13,7 +13,6 @@ public class OscMessage implements OscPacket {
     private final List<Object> arguments;
     private final String address;
 
-
     public OscMessage(String theAddress) {
         this(theAddress, new ArrayList<>());
     }
@@ -130,7 +129,7 @@ public class OscMessage implements OscPacket {
 
     @Override
     public byte[] getBytes() {
-        return OscParser.messageToByteArray(this);
+        return OscParser.messageToBytes(this);
     }
 
     @Override

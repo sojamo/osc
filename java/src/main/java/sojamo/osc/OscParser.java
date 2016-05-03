@@ -1,10 +1,7 @@
 package sojamo.osc;
 
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 
 public class OscParser {
@@ -52,16 +49,19 @@ public class OscParser {
         return theTypetag.toString();
     }
 
-    /**
-     * TODO
-     * consider to return a list of OSC messages or a Message/Bundle instead of
-     * adding them to the schedule-queue directly. Also add the timetag to the
-     * message directly by including the timetag when a message is created
-     * from a byte-array at byteArrayToMessage().
-     */
-    static public void byteArrayToPacket(byte[] theBytes,
-                                         OSC.Schedule theQueue,
-                                         long theMillis) {
+    static public boolean isBundle(final byte[] theBytes) {
+        return startsWith(theBytes, OscBundle.BUNDLE_AS_BYTES);
+    }
+
+    static public Map<OscMessage, Long> bytesToPackets(final byte[] theBytes) {
+        final Map<OscMessage, Long> collect = new LinkedHashMap<>();
+        bytesToPackets(collect, theBytes, OscTimetag.TIMETAG_NOW);
+        return collect;
+    }
+
+    static public void bytesToPackets(final Map<OscMessage, Long> theCollection,
+                                      final byte[] theBytes,
+                                      final long theMillis) {
 
         /* check if we are dealing with a valid OSC packet size */
         if (theBytes.length % 4 != 0) {
@@ -69,7 +69,7 @@ public class OscParser {
         }
 
         /* check if we are dealing with a Bundle */
-        if (startsWith(theBytes, OscBundle.BUNDLE_AS_BYTES)) {
+        if (isBundle(theBytes)) {
 
             /* extract timetag */
             final long time = l(Arrays.copyOfRange(theBytes, 8, 16));
@@ -92,22 +92,17 @@ public class OscParser {
                 /* determine the size of the byte block */
                 final int len = i(Arrays.copyOfRange(bundle, index, index + 4));
                 /* convert byte array to OSC packet recursively */
-                byteArrayToPacket(Arrays.copyOfRange(bundle, index + 4, index + len + 4), theQueue, millis);
+                bytesToPackets(theCollection, Arrays.copyOfRange(bundle, index + 4, index + len + 4), millis);
                 index += (len + 4);
             }
 
         } else {
-            /* put the message on the queue if it is to be published immediately */
-            if (theMillis == OscTimetag.TIMETAG_NOW) {
-                theQueue.immediately(byteArrayToMessage(theBytes));
-            } else {
-                theQueue.later(byteArrayToMessage(theBytes), theMillis);
-            }
+            theCollection.put(bytesToMessage(theBytes), theMillis);
         }
     }
 
 
-    static public OscMessage byteArrayToMessage(byte[] theData) {
+    static public OscMessage bytesToMessage(byte[] theData) {
         int n = 0;
         final int len = theData.length;
 
@@ -128,17 +123,17 @@ public class OscParser {
         n = (n + (4 - n % 4));
 
         final List<Object> arguments = new ArrayList<>();
-        byteArrayToArguments(theData, n, typetag.toString(), arguments);
+        bytesToArguments(theData, n, typetag.toString(), arguments);
 
         /* finally return a new OscMessage */
         return new OscMessage(address, arguments);
     }
 
 
-    static private int byteArrayToArguments(final byte[] theByteArray,
-                                            final int theByteArrayPosition,
-                                            final String theTypetag,
-                                            final List<Object> theArguments) {
+    static private int bytesToArguments(final byte[] theByteArray,
+                                        final int theByteArrayPosition,
+                                        final String theTypetag,
+                                        final List<Object> theArguments) {
         int byteArrayPosition = theByteArrayPosition;
         int index = 0;
         final int length = theTypetag.length();
@@ -175,7 +170,7 @@ public class OscParser {
                         }
                         n1++;
                     } while (n1 < theByteArray.length);
-                    theArguments.add(c=='s' ? buffer.toString() : new OscSymbol(buffer.toString()));
+                    theArguments.add(c == 's' ? buffer.toString() : new OscSymbol(buffer.toString()));
                     byteArrayPosition = n1 + (4 - buffer.length() % 4);
                     break;
                 case ('c'): /* character */
@@ -204,7 +199,7 @@ public class OscParser {
                     List<Object> sub = new ArrayList<>();
                     int p0 = theTypetag.indexOf('[') + 1;
                     int p1 = theTypetag.lastIndexOf(']');
-                    byteArrayPosition = byteArrayToArguments(theByteArray, byteArrayPosition, theTypetag.substring(p0, p1), sub);
+                    byteArrayPosition = bytesToArguments(theByteArray, byteArrayPosition, theTypetag.substring(p0, p1), sub);
                     index += p1 - p0;
                     theArguments.add(sub);
                     break;
@@ -216,22 +211,22 @@ public class OscParser {
     }
 
 
-    static public byte[] messageToByteArray(OscMessage theMessage) {
+    static public byte[] messageToBytes(OscMessage theMessage) {
         final byte[] address = theMessage.getAddress().getBytes();
-        final byte[] arguments = argumentsToByteArray(theMessage.getArguments());
+        final byte[] arguments = argumentsToBytes(theMessage.getArguments());
         return append(append(address, filln(address.length)), arguments);
     }
 
 
-    static public byte[] argumentsToByteArray(Collection theData) {
+    static public byte[] argumentsToBytes(Collection theData) {
         StringBuilder typetag = new StringBuilder();
         typetag.append(',');
-        final byte[] arguments = argumentsToByteArray(typetag, theData);
+        final byte[] arguments = argumentsToBytes(typetag, theData);
         return append(append(String.valueOf(typetag).getBytes(), filln(typetag.length())), arguments);
     }
 
 
-    static private byte[] argumentsToByteArray(StringBuilder theTypetag, Collection theData) {
+    static private byte[] argumentsToBytes(StringBuilder theTypetag, Collection theData) {
         byte[] arguments = new byte[0];
 
         for (Object o : theData) {
@@ -277,7 +272,7 @@ public class OscParser {
                 theTypetag.append((boolean) o ? 'T' : 'F');
             } else if (o instanceof Collection) { /* Collection */
                 theTypetag.append('[');
-                arguments = append(arguments, argumentsToByteArray(theTypetag, (Collection) o));
+                arguments = append(arguments, argumentsToBytes(theTypetag, (Collection) o));
                 theTypetag.append(']');
             } else {
                 /* TODO

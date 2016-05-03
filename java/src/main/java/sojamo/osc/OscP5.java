@@ -6,7 +6,7 @@ public class OscP5 extends OSC {
     public OscP5(Object theApp, int thePort) {
 
         /* let the superclass know about us */
-        super(theApp, thePort);
+        super(thePort);
 
         /* Check if we are dealing with a PApplet */
         registerPApplet(theApp);
@@ -64,7 +64,5 @@ public class OscP5 extends OSC {
         debug("Disposing OscP5 instance");
         super.dispose();
     }
-
-
 
 }

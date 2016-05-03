@@ -1,88 +1,44 @@
 package sojamo.osc;
 
 
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.SocketAddress;
-import java.net.SocketException;
 import java.util.*;
-import java.util.concurrent.*;
 
 
 public class OSC {
 
-    static public int queueSize = 2048;
-    static public int packetSize = 1536;
-
     static boolean DEBUG = true;
-
-    final private Object app;
-    final private ArrayBlockingQueue<OscMessage> queue;
     final private Collection<OscListener> listeners = new LinkedHashSet<>();
-    final private Schedule schedule;
-    private ITransfer transfer;
+    final private ITransfer transfer;
+
 
     /**
-     * Creates a now OSC instance with a DatagramSocket listening on port thePort.
+     * Creates a now OSC instance using a DatagramSocket
+     * listening on port thePort.
      */
-    public OSC(Object theApp, int thePort) {
-        this(theApp);
-        transfer = new UDPTransfer(this, thePort);
+    public OSC(int thePort) {
+        this(new UDPTransfer(thePort));
     }
 
 
-    public OSC(Object theApp) {
-
-        app = theApp;
-
-        /* initialize a queue to store all incoming OSC messages before they are published */
-        queue = new ArrayBlockingQueue<>(queueSize);
-
-        /* start a scheduled executor service to invoke time-tagged messages in the future */
-        final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-
-        /* schedule when to publish and consume an OscMessage (immediately or future) */
-        schedule = new Schedule() {
-
-            @Override
-            public void immediately(final OscMessage theMessage) {
-                queue.offer(theMessage);
-            }
-
-            @Override
-            public void later(final OscMessage theMessage, final long theMillis) {
-                if (theMillis < 0) {
-                    return;  /* in case the message has expired, don't schedule it. */
-                }
-                scheduler.schedule(new Runnable() {
-                    @Override
-                    public void run() {
-                        queue.offer(theMessage);
-                    }
-                }, theMillis, TimeUnit.MILLISECONDS);
-            }
-        };
-
+    public OSC(ITransfer theTransfer) {
+        transfer = theTransfer;
     }
 
-    public Schedule schedule() {
-        return schedule;
+    public ITransfer getTransfer() {
+        return transfer;
     }
 
-
-    public OscListener subscribeWithParameters(final Object theObject, final String theMethod, final String theAddressPattern) {
-        return dummy;
-    }
 
     public OscListener subscribe(final Object theObject, final String theMethod, final String theAddressPattern) {
         return subscribe(checkEventMethod(theObject, theMethod, oscMessageClass, theAddressPattern));
     }
 
     public OscListener subscribe(final OscListener theListener) {
-        listeners.add(theListener);
+        if(!theListener.equals(null) && !theListener.equals(dummy)) {
+            listeners.add(theListener);
+        }
         return theListener;
     }
 
@@ -94,8 +50,7 @@ public class OSC {
 
 
     public int consume() {
-        final List<OscMessage> messages = new ArrayList<>();
-        queue.drainTo(messages);
+        final List<OscMessage> messages = transfer.consume();
         for (OscMessage message : messages) {
             for (OscListener listener : listeners) {
                 listener.oscEvent(message);
@@ -105,26 +60,26 @@ public class OSC {
     }
 
 
-    public OSC send(final NetAddress theNetAddress, final String theAddressPattern, Object... theArguments) {
-        sendPacket(theNetAddress, new OscMessage(theAddressPattern, Arrays.asList(theArguments)));
+    public OSC send(final IAddress theIAddress, final String theAddressPattern, Object... theArguments) {
+        sendPacket(theIAddress, new OscMessage(theAddressPattern, Arrays.asList(theArguments)));
         return this;
     }
 
 
-    public OSC send(final NetAddress theNetAddress, final OscMessage theMessage) {
-        sendPacket(theNetAddress, theMessage);
+    public OSC send(final IAddress theIAddress, final OscMessage theMessage) {
+        sendPacket(theIAddress, theMessage);
         return this;
     }
 
 
-    public OSC send(final NetAddress theNetAddress, final OscBundle theBundle) {
-        sendPacket(theNetAddress, theBundle);
+    public OSC send(final IAddress theIAddress, final OscBundle theBundle) {
+        sendPacket(theIAddress, theBundle);
         return this;
     }
 
 
-    protected OSC sendPacket(final NetAddress theNetAddress, final OscPacket thePacket) {
-        transfer.send(theNetAddress, thePacket);
+    private OSC sendPacket(final IAddress theIAddress, final OscPacket thePacket) {
+        transfer.send(theIAddress, thePacket);
         return this;
     }
 
@@ -183,99 +138,6 @@ public class OSC {
     }
 
 
-    interface Schedule {
-
-        void immediately(OscMessage theMessage);
-
-        void later(OscMessage theMessage, long theMillis);
-
-    }
-
-
-    interface DatagramPacketListener {
-        void invoke(final byte[] theData, final SocketAddress theAddress);
-    }
-
-    private static class UDPTransfer implements ITransfer {
-
-        private DatagramSocket socket;
-        final private ExecutorService exec = Executors.newFixedThreadPool(1);
-
-        UDPTransfer(final OSC theOSC, final int thePort) {
-
-
-             /* open a UDP connection */
-            try {
-                socket = new DatagramSocket(thePort);
-                try {
-                    exec.execute(run(socket, packetSize, new DatagramPacketListener() {
-                        public void invoke(final byte[] theData, final SocketAddress theAddress) {
-                        /* pass the incoming data to the parser */
-                            OscParser.byteArrayToPacket(theData, theOSC.schedule(), OscTimetag.TIMETAG_NOW);
-                        }
-                    }));
-
-                } catch (Exception e) {
-                    debug("Can't create socket.", e.getMessage());
-                }
-            } catch (SocketException e1) {
-                debug("Can't create socket. ", e1.getMessage());
-            }
-        }
-
-        private Runnable run(final DatagramSocket theSocket,
-                             final int theDatagramSize,
-                             final DatagramPacketListener theListener) {
-            return new Runnable() {
-                public void run() {
-                    while (!theSocket.isClosed()) {
-                        byte[] receiveData = new byte[theDatagramSize];
-                        DatagramPacket packet = new DatagramPacket(receiveData, receiveData.length);
-                        try {
-                            theSocket.receive(packet);
-                            byte[] data = new byte[packet.getLength()];
-                            System.arraycopy(packet.getData(), packet.getOffset(), data, 0, packet.getLength());
-                            theListener.invoke(data, packet.getSocketAddress());
-
-                        } catch (IOException e) {
-                            debug("Can't receive messages,", e.getMessage());
-                        }
-                    }
-                }
-            };
-        }
-
-        @Override
-        public void send(final NetAddress theNetAddress, final OscPacket thePacket) {
-            try {
-                final byte[] bytes = thePacket.getBytes();
-                DatagramPacket myPacket = new DatagramPacket(bytes, bytes.length, theNetAddress.getAddress(), theNetAddress.getPort());
-                send(myPacket);
-            } catch (NullPointerException npe) {
-                debug(String.format("Can't send message (%s) : %s", theNetAddress.getAddress().getCanonicalHostName(), npe.getMessage()));
-            }
-        }
-
-        private void send(final DatagramPacket thePacket) {
-            try {
-                socket.send(thePacket);
-            } catch (Exception e) {
-                debug(String.format("Can't send message (%s) : %s", thePacket.getAddress().getCanonicalHostName(), e.getMessage()));
-            }
-        }
-
-        @Override
-        public void receive(OscPacket thePacket) {
-
-        }
-
-        @Override
-        public void close() {
-            socket.close();
-        }
-    }
-
-
     static protected final Class[] oscMessageClass = new Class[]{OscMessage.class};
 
     static private final OscListener dummy = new OscListener() {
@@ -309,7 +171,14 @@ public class OSC {
 
     static public void printBytes(byte[] byteArray) {
         for (int i = 0; i < byteArray.length; i++) {
-            System.out.print((char) byteArray[i] + " (" + hexDigits[byteArray[i] >>> 4 & 0xf] + "" + hexDigits[byteArray[i] & 0xf] + ")  ");
+
+            println(
+                    (char) byteArray[i],
+                    "(",
+                    hexDigits[byteArray[i] >>> 4 & 0xf],
+                    hexDigits[byteArray[i] & 0xf],
+                    ") ");
+
             if ((i + 1) % 4 == 0) {
                 System.out.print("\n");
             }
@@ -420,6 +289,15 @@ public class OSC {
 
     static public boolean isNumeric(final String str) {
         return str.matches("(-|\\+)?\\d+(\\.\\d+)?");
+    }
+
+    static public boolean sleep(long theMillis) {
+        try {
+            Thread.sleep(theMillis);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
 }
