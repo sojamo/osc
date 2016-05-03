@@ -1,13 +1,30 @@
 package sojamo.osc;
 
-/**
- * Created by andi on 25/4/16.
- */
+
+
+import java.util.List;
+import java.util.Observer;
+
 public interface ITransfer {
 
-    void send(NetAddress theNetAddress, OscPacket thePacket);
+    void send(IAddress theIAddress, OscPacket thePacket);
 
-    void receive(OscPacket thePacket);
+    void process(byte[] theData);
+
+    void immediately(OscMessage theMessage);
+
+    void later(OscMessage theMessage,long theMillis);
+
+    List<OscMessage> consume();
+
+    boolean isRunning();
 
     void close();
+
+    void deleteObservers();
+
+    void addObserver(Observer o);
+
+    void deleteObserver(Observer o);
+
 }

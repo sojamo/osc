@@ -3,7 +3,7 @@ package sojamo.osc;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
-public class NetAddress extends InetSocketAddress {
+public class NetAddress extends InetSocketAddress implements IAddress {
 
     static public final String LOCALHOST = "localhost";
 
@@ -17,6 +17,11 @@ public class NetAddress extends InetSocketAddress {
 
     public NetAddress(String theHostname, int thePort) {
         super(theHostname, thePort);
+    }
+
+    @Override
+    public String getHost() {
+        return super.getHostName();
     }
 
     @Override
