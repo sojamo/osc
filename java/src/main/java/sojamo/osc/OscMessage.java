@@ -13,43 +13,56 @@ public class OscMessage implements OscPacket {
     private final List<Object> arguments;
     private final String address;
 
-    public OscMessage(String theAddress) {
+    public OscMessage(final String theAddress) {
         this(theAddress, new ArrayList<>());
     }
 
 
-    protected OscMessage(OscMessage theMessage) {
+    protected OscMessage(final OscMessage theMessage) {
         this(theMessage.getAddress(), theMessage.getArguments());
     }
 
-    public OscMessage(String theAddress, Object... args) {
+    public OscMessage(final String theAddress,
+                      final Object... args) {
         this(theAddress, Arrays.asList(args));
     }
 
-    public OscMessage(String theAddress, List theArguments) {
+    public OscMessage(final String theAddress,
+                      final List theArguments) {
         address = theAddress;
         arguments = theArguments;
         /* TODO
+         * arguments and address: check for null
          * arguments: should we do a (shallow) copy here?
          * currently passed by reference.
          */
     }
 
 
-    public OscMessage add(Object... o) {
+    public OscMessage add(final Object... o) {
         arguments.addAll(Arrays.asList(o));
         return this;
     }
 
 
-    public OscMessage add(Object o) {
+    public OscMessage add(final Object o) {
         arguments.add(o);
         return this;
     }
 
 
+    public boolean isAddress(final String theAddress) {
+        return getAddress().equals(theAddress);
+    }
+
+
     public String getAddress() {
         return address;
+    }
+
+
+    public boolean isTypetag(final String theTypetag) {
+        return getTypetag().equals(theTypetag);
     }
 
 
@@ -63,67 +76,67 @@ public class OscMessage implements OscPacket {
     }
 
 
-    public int getIntAt(int theIndex) {
+    public int getIntAt(final int theIndex) {
         return i(get(theIndex));
     }
 
-    public float getFloatAt(int theIndex) {
+    public float getFloatAt(final int theIndex) {
         return f(get(theIndex));
     }
 
-    public char getCharAt(int theIndex) {
+    public char getCharAt(final int theIndex) {
         return (char) (get(theIndex));
     }
 
-    public double getDoubleAt(int theIndex) {
+    public double getDoubleAt(final int theIndex) {
         return d(get(theIndex));
     }
 
-    public byte[] getBlobAt(int theIndex) {
+    public byte[] getBlobAt(final int theIndex) {
         return bytes(get(theIndex));
     }
 
-    public long getLongAt(int theIndex) {
+    public long getLongAt(final int theIndex) {
         return l(get(theIndex));
     }
 
-    public String getStringAt(int theIndex) {
+    public String getStringAt(final int theIndex) {
         return s(get(theIndex));
     }
 
-    public boolean getBooleanAt(int theIndex) {
+    public boolean getBooleanAt(final int theIndex) {
         return b(get(theIndex));
     }
 
-    public Object getNilAt(int theIndex) {
+    public Object getNilAt(final int theIndex) {
         return get(theIndex);
     }
 
-    public OscImpulse getImpulseAt(int theIndex) {
+    public OscImpulse getImpulseAt(final int theIndex) {
         return (OscImpulse) get(theIndex);
     }
 
-    public int getMidiAt(int theIndex) {
+    public int getMidiAt(final int theIndex) {
         return i(get(theIndex));
     }
 
-    public int getRGBAAt(int theIndex) {
+    public int getRGBAAt(final int theIndex) {
         return i(get(theIndex));
     }
 
-    public OscTimetag getTimetagAt(int theIndex) {
+    public OscTimetag getTimetagAt(final int theIndex) {
         return get(theIndex) instanceof OscTimetag ? (OscTimetag) get(theIndex) : new OscTimetag();
     }
 
-    public List getListAt(int theIndex) {
+    public List getListAt(final int theIndex) {
         return toList(get(theIndex));
     }
 
-    public OscSymbol getSymbolAt(int theIndex) {
+    public OscSymbol getSymbolAt(final int theIndex) {
         return (OscSymbol) (get(theIndex));
     }
 
-    public Object get(int theIndex) {
+    public Object get(final int theIndex) {
         return getArguments().get(theIndex);
     }
 
@@ -135,10 +148,10 @@ public class OscMessage implements OscPacket {
     @Override
     public String toString() {
         String b = "OscMessage{" +
-                " address=" + getAddress() +
-                ", typetag=" + OscParser.getTypetag(this) +
-                ", arguments=" + OscParser.asString(arguments) +
-                " }";
+                " address:" + getAddress() +
+                ", typetag:" + OscParser.getTypetag(this) +
+                ", arguments:" + OscParser.asString(arguments) +
+                "}";
         return b;
     }
 

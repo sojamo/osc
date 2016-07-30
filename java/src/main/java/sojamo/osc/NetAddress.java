@@ -7,15 +7,15 @@ public class NetAddress extends InetSocketAddress implements IAddress {
 
     static public final String LOCALHOST = "localhost";
 
-    public NetAddress(int thePort) {
+    public NetAddress(final int thePort) {
         this(LOCALHOST, thePort);
     }
 
-    public NetAddress(InetAddress theAddr, int thePort) {
+    public NetAddress(final InetAddress theAddr, final int thePort) {
         super(theAddr, thePort);
     }
 
-    public NetAddress(String theHostname, int thePort) {
+    public NetAddress(final String theHostname, final int thePort) {
         super(theHostname, thePort);
     }
 
@@ -27,9 +27,9 @@ public class NetAddress extends InetSocketAddress implements IAddress {
     @Override
     public String toString() {
         return "NetAddress{" +
-                " address=" + getAddress().getHostAddress() +
-                ", hostname=" + getHostName() +
-                ", port=" + getPort() +
+                " address:" + getAddress().getHostAddress() +
+                ", hostname:" + getHostName() +
+                ", port:" + getPort() +
                 " }";
     }
 }

@@ -1,7 +1,6 @@
 package sojamo.osc;
 
 
-
 import java.util.List;
 import java.util.Observer;
 
@@ -9,11 +8,13 @@ public interface ITransfer {
 
     void send(IAddress theIAddress, OscPacket thePacket);
 
+    void send(IAddress theIAddress, byte[] theBytes);
+
     void process(byte[] theData);
 
     void immediately(OscMessage theMessage);
 
-    void later(OscMessage theMessage,long theMillis);
+    void later(OscMessage theMessage, long theMillis);
 
     List<OscMessage> consume();
 

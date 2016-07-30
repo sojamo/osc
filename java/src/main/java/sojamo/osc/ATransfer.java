@@ -15,7 +15,7 @@ public abstract class ATransfer extends Observable implements ITransfer {
     /* initialize a queue to store all incoming OSC messages before they are published */
     final private ArrayBlockingQueue<OscMessage> queue;
 
-    public ATransfer(int theQueueSize) {
+    public ATransfer(final int theQueueSize) {
         queue = new ArrayBlockingQueue<>(theQueueSize);
     }
 
@@ -38,9 +38,7 @@ public abstract class ATransfer extends Observable implements ITransfer {
     }
 
     @Override
-    public void process(byte[] theBytes) {
-
-        /* TODO validate packet? */
+    public void process(final byte[] theBytes) {
 
         if (OscParser.isBundle(theBytes)) {
 

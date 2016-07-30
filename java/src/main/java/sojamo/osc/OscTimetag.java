@@ -38,7 +38,7 @@ public class OscTimetag {
     }
 
     public OscTimetag setFutureTimeMillis(final long t) {
-        setTimeMillis(System.currentTimeMillis() + (t<0 ? 0:t));
+        setTimeMillis(System.currentTimeMillis() + (t < 0 ? 0 : t));
         return this;
     }
 
@@ -71,9 +71,9 @@ public class OscTimetag {
     @Override
     public String toString() {
         return "OscTimetag{" +
-                " long=" + timetag +
-                " date=" + getDate() +
-                " now?=" + isImmediate() +
+                " long:" + timetag +
+                " date:" + getDate() +
+                " isNow:" + isImmediate() +
                 " }";
     }
 

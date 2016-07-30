@@ -1,9 +1,15 @@
 package sojamo.osc;
 
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Observable;
+import java.util.Observer;
+
 public class OscP5 extends OSC {
 
-    public OscP5(Object theApp, int thePort) {
+    public OscP5(final Object theApp,
+                 final int thePort) {
 
         /* let the superclass know about us */
         super(thePort);
@@ -12,8 +18,27 @@ public class OscP5 extends OSC {
         registerPApplet(theApp);
 
         /* Check if theApp implements the oscEvent method */
-        subscribe(checkEventMethod(theApp, "oscEvent", oscMessageClass, "" ));
+        subscribe(checkEventMethod(theApp, "oscEvent", oscMessageClass, ""));
         /* OK we are done with initializing OscP5 */
+
+
+        /* optional and just in case a sketch wants to capture the raw data
+         * packet, lets check if a method transferEvent exists which would then
+         * receive the raw bytes of a packet (which doesn't have to be an
+         * OSC packet). */
+        try {
+            final Method method = theApp.getClass().getDeclaredMethod("transferEvent", byteArrayClass);
+            method.setAccessible(true);
+            getTransfer().addObserver(new Observer() {
+                public void update(Observable o, Object arg) {
+                    try {
+                        method.invoke(theApp, (byte[]) arg);
+                    } catch (IllegalAccessException | InvocationTargetException e) {
+                    }
+                }
+            });
+        } catch (Exception e) {
+        }
     }
 
 
@@ -22,7 +47,7 @@ public class OscP5 extends OSC {
      * If this is the case, register "dispose".
      * Do so quietly, no error messages will be displayed.
      */
-    private void registerPApplet(Object theObject) {
+    private void registerPApplet(final Object theObject) {
 
         final String child = "processing.core.PApplet";
         Object parent = null;

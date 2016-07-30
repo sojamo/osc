@@ -15,25 +15,25 @@ public class OscBundle implements OscPacket {
     }
 
 
-    public OscBundle(OscPacket... thePackets) {
+    public OscBundle(final OscPacket... thePackets) {
         this(Arrays.asList(thePackets));
     }
 
-    public OscBundle(Collection<OscPacket> thePackets) {
+    public OscBundle(final Collection<OscPacket> thePackets) {
         addPackets(thePackets);
     }
 
-    public OscBundle add(OscPacket... thePackets) {
+    public OscBundle add(final OscPacket... thePackets) {
         addPackets(Arrays.asList(thePackets));
         return this;
     }
 
-    public OscBundle add(Collection<OscPacket> thePackets) {
+    public OscBundle add(final Collection<OscPacket> thePackets) {
         addPackets(thePackets);
         return this;
     }
 
-    private void addPackets(Collection<OscPacket> thePackets) {
+    private void addPackets(final Collection<OscPacket> thePackets) {
         packets.addAll(thePackets);
     }
 
@@ -45,7 +45,7 @@ public class OscBundle implements OscPacket {
         return timetag.isImmediate();
     }
 
-    public OscBundle setTimetag(OscTimetag theTimetag) {
+    public OscBundle setTimetag(final OscTimetag theTimetag) {
         timetag.setTimetag(theTimetag);
         return this;
     }
@@ -69,12 +69,12 @@ public class OscBundle implements OscPacket {
     public String toString() {
         StringBuilder b = new StringBuilder().
                 append("OscBundle{").
-                append(" timetag=").append(timetag).
-                append(", packets={");
+                append(" timetag:").append(timetag).
+                append(", packets:[");
         for (OscPacket packet : packets) {
-            b.append(" ").append(packet.toString());
+            b.append(", ").append(packet.toString());
         }
-        b.append(" }");
+        b.append("]}");
         return b.toString();
     }
 

@@ -5,7 +5,7 @@ public class OscSymbol {
 
     private final String symbol;
 
-    public OscSymbol(String theSymbol) {
+    public OscSymbol(final String theSymbol) {
         symbol = theSymbol;
     }
 

@@ -36,10 +36,12 @@ var OscP5 = function() {
 
   switch(arguments.length) {
     case(1):
-    this.app = arguments[0].app !== undefined ? arguments[0].app:this.app;
-    this.wsHost = arguments[0].wsHost !== undefined ? arguments[0].wsHost:this.wsHost;
-    this.wsPort = arguments[0].wsPort !== undefined ? arguments[0].wsPort:this.wsPort;
-    this.oscPort = arguments[0].oscPort !== undefined ? arguments[0].oscPort:this.oscPort;
+
+    this.app = arguments[0].app || this.app;
+    this.wsHost = arguments[0].wsHost || this.wsHost;
+    this.wsPort = arguments[0].wsPort || this.wsPort;
+    this.oscPort = arguments[0].oscPort || this.oscPort;
+
     if(this.app === undefined) {
       this.app = arguments[0];
     }
@@ -73,6 +75,13 @@ var OscP5 = function() {
     // JSON.stringify(JSON.parse(event.data))
     console.log("got a message from websocket-server:");
     console.log(theEvent.data);
+
+    /* TODO
+     * convert data to OscMessage, check if we have
+     * received the message as a osc-min json object.
+     * the pass the message on to the app.
+     */
+
     self.app.oscEvent(theEvent);
   };
 
@@ -155,9 +164,11 @@ NetAddress.prototype.toString = function() {
 }
 
 var OscMessage = function() {
+
   this.address = "";
   this.typetag = "";
   this.args = [];
+
   if(arguments.length == 1) {
     if(typeof arguments[0] ===  'string') {
       this.address = arguments[0];
@@ -185,6 +196,10 @@ OscMessage.prototype.add = function() {
   this.args = this.args.concat(Array.from(arguments));
 }
 
+OscMessage.prototype.get = function(theIndex) {
+  return args[theIndex];
+}
+
 OscMessage.prototype.toString = function() {
   var s = "OscMessage{";
   s += " address="+this.address;
@@ -195,10 +210,38 @@ OscMessage.prototype.toString = function() {
 }
 
 
-var OscBundle = function() {
 
+/* TODO
+ * Blobs should translate into a typed array
+ * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Typed_arrays
+ */
+
+
+var OscBundle = function() {
+  this.packets = []
 }
 
 OscBundle.prototype.add = function() {
+
+}
+
+OscBundle.prototype.isImmediate = function() {
+
+}
+
+OscBundle.prototype.setTimetag = function() {
+
+}
+
+OscBundle.prototype.getTimetag = function() {
+
+}
+
+var OscImpulse = function() {
+
+}
+
+
+var OscTimetag = function() {
 
 }

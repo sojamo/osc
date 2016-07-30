@@ -16,11 +16,11 @@ public class UDPTransfer extends ATransfer {
     final private ExecutorService exec = Executors.newFixedThreadPool(1);
     private DatagramSocket socket;
 
-    UDPTransfer(final int thePort) {
+    public UDPTransfer(final int thePort) {
         this(thePort, 1536);
     }
 
-    UDPTransfer(final int thePort, final int thePacketSize) {
+    public UDPTransfer(final int thePort, final int thePacketSize) {
         super(2048);
         packetSize = thePacketSize;
 
@@ -76,22 +76,7 @@ public class UDPTransfer extends ATransfer {
     @Override
     public void send(final IAddress theIAddress, final OscPacket thePacket) {
         try {
-            final byte[] bytes = thePacket.getBytes();
-            DatagramPacket myPacket = new DatagramPacket(
-                    bytes,
-                    bytes.length,
-                    ((NetAddress)theIAddress).getAddress(),
-                    theIAddress.getPort());
-
-            try {
-                socket.send(myPacket);
-            } catch (Exception e) {
-                debug(String.format(
-                        "Can't send message (%s) : %s",
-                        myPacket.getAddress().getCanonicalHostName(),
-                        e.getMessage()));
-            }
-
+            send(theIAddress, thePacket.getBytes());
         } catch (NullPointerException npe) {
             debug(String.format(
                     "Can't send message (%s) : %s",
@@ -100,6 +85,23 @@ public class UDPTransfer extends ATransfer {
         }
     }
 
+    @Override
+    public void send(IAddress theIAddress, byte[] theBytes) {
+        DatagramPacket myPacket = new DatagramPacket(
+                theBytes,
+                theBytes.length,
+                ((NetAddress) theIAddress).getAddress(),
+                theIAddress.getPort());
+
+        try {
+            socket.send(myPacket);
+        } catch (Exception e) {
+            debug(String.format(
+                    "Can't send bytes (%s) : %s",
+                    myPacket.getAddress().getCanonicalHostName(),
+                    e.getMessage()));
+        }
+    }
 
     @Override
     public boolean isRunning() {

@@ -68,9 +68,23 @@ sock = udp.createSocket("udp4", function(thePacket, rinfo) {
   try {
     // send through WebSocketServer wss to all connected clients (browser)
     var packet = unpack(thePacket);
+    console.log(packet);
+
+    /* a packet here is converted into an object which is
+     * identifiable by its oscType value (message or bundle).
+     * at this point the packet, no matter of which type it is,
+     * can be sent to the client, or can be processed and
+     * scheduled (if of type bundle) for distribution considering
+     * the timetag.
+     * the packet is the sent to the Websocket client where it is
+     * translated from the osc-min packet format into an
+     * sojamo.osc.OscPacket format.
+     */
+
     wss.clients.forEach(function each(client) {
       client.send(packet);
     });
+    
   } catch (err) {
     logger.log('error',err);
     return logger.log('debug','invalid OSC packet.');
