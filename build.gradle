@@ -11,10 +11,15 @@ plugins {
     id 'java-library'
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
 repositories {
     // Use jcenter for resolving dependencies.
     // You can declare any Maven/Ivy/file repository here.
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
@@ -26,4 +31,23 @@ dependencies {
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.13'
+}
+
+def homePath = System.properties['user.home']
+def home = file('.')
+
+configurations {
+    jar.archiveName = 'osc.jar'
+}
+
+javadoc {
+    source = sourceSets.main.allJava
+    classpath = configurations.compile
+}
+
+// copying and zipping files see 
+// https://docs.gradle.org/current/userguide/working_with_files.html#sec:copying_multiple_files_example
+task copyJar(type: Copy) {
+    from file("$buildDir/libs/osc.jar")
+    into file("$homePath/Documents/Processing/libraries/osc/library")
 }
