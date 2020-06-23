@@ -9,7 +9,10 @@ dist/
 target/
 tmp/
 node_modules/
+bin/
+build/
 
+.vscode*
 # Ignore Gradle project-specific cache directory
 .gradle
 
