@@ -11,22 +11,26 @@ import java.util.concurrent.Executors;
 
 import static sojamo.osc.OSC.debug;
 
-
 public class UDPTransfer extends ATransfer {
 
     final private int packetSize;
     final private ExecutorService exec = Executors.newFixedThreadPool(1);
     private DatagramSocket socket;
 
-    public UDPTransfer(final int thePort) {
-        this(thePort, 1536);
+    public UDPTransfer(final String theAddress, final int thePort) {
+        this(theAddress, thePort, 1536);
     }
 
-    public UDPTransfer(final int thePort, final int thePacketSize) {
+    public UDPTransfer(final String theAddress, final int thePort, final int thePacketSize) {
         super(2048);
         packetSize = thePacketSize;
 
         InetAddress networkAddress = null;
+        try {
+            networkAddress = InetAddress.getByName(theAddress);
+        } catch (final Exception e) {
+            debug("UDPTransfer: network address", theAddress, "not available", e.getMessage());
+        }
         try {
 
             /* open a UDP connection */
@@ -38,49 +42,38 @@ public class UDPTransfer extends ATransfer {
             }
 
             socket.bind(new InetSocketAddress(networkAddress, thePort));
+            debug("UDPTransfer:", "binding to address", networkAddress, "on port", thePort);
 
             /* alternatively consider to use java.nio.channels here instead */
 
             try {
 
-                debug("UDP socket running on port", thePort);
+                debug("UDPTransfer:", "UDP socket running on port", thePort);
 
-                exec.execute(
-                        new Runnable() {
-                            public void run() {
-                                while (!socket.isClosed()) {
+                exec.execute(new Runnable() {
+                    public void run() {
+                        final byte[] receiveData = new byte[packetSize];
+                        final DatagramPacket packet = new DatagramPacket(receiveData, receiveData.length);
+                        try {
+                            while (!socket.isClosed()) {
 
-                                    byte[] receiveData = new byte[packetSize];
-                                    DatagramPacket packet = new DatagramPacket(receiveData, receiveData.length);
-
-                                    try {
-
-                                        socket.receive(packet);
-
-                                        byte[] data = new byte[packet.getLength()];
-
-                                        System.arraycopy(
-                                                packet.getData(),
-                                                packet.getOffset(),
-                                                data,
-                                                0,
-                                                packet.getLength());
-
-                                        process(data);
-
-                                    } catch (IOException e) {
-                                        debug("UDP socket running on port", thePort, e.getMessage(), "can't receive messages.");
-                                    }
-                                }
+                                socket.receive(packet);
+                                final byte[] data = new byte[packet.getLength()];
+                                System.arraycopy(packet.getData(), packet.getOffset(), data, 0, packet.getLength());
+                                process(data, new NetAddress(packet.getAddress(), packet.getPort()));
                             }
+                        } catch (final IOException e) {
+                            debug("UDTransfer.exec: UDP socket running on port", thePort, e.getMessage(),
+                                    "can't receive messages.");
                         }
-                );
+                    }
+                });
 
-            } catch (Exception e) {
-                debug("Can't create socket.", e.getMessage());
+            } catch (final Exception e) {
+                debug("UDPTransfer:", "Can't create socket.", e.getMessage());
             }
-        } catch (SocketException e1) {
-            debug("Can't create socket. ", e1.getMessage());
+        } catch (final SocketException e1) {
+            debug("UDPTransfer:", "Can't create socket. ", e1.getMessage());
         }
     }
 
@@ -88,29 +81,22 @@ public class UDPTransfer extends ATransfer {
     public void send(final IAddress theIAddress, final OscPacket thePacket) {
         try {
             send(theIAddress, thePacket.getBytes());
-        } catch (NullPointerException npe) {
-            debug(String.format(
-                    "Can't send message (%s) : %s",
-                    theIAddress.getHost(),
+        } catch (final NullPointerException npe) {
+            debug(String.format("UDPTransfer.send: Can't send message (%s) : %s", theIAddress.getHost(),
                     npe.getMessage()));
         }
     }
 
     @Override
-    public void send(IAddress theIAddress, byte[] theBytes) {
-        DatagramPacket myPacket = new DatagramPacket(
-                theBytes,
-                theBytes.length,
-                ((NetAddress) theIAddress).getAddress(),
-                theIAddress.getPort());
+    public void send(final IAddress theIAddress, final byte[] theBytes) {
+        final DatagramPacket myPacket = new DatagramPacket(theBytes, theBytes.length,
+                ((NetAddress) theIAddress).getAddress(), theIAddress.getPort());
 
         try {
             socket.send(myPacket);
-        } catch (Exception e) {
-            debug(String.format(
-                    "Can't send bytes (%s) : %s",
-                    myPacket.getAddress().getCanonicalHostName(),
-                    e.getMessage()));
+        } catch (final Exception e) {
+            debug(String.format("UDPTransfer.send: Can't send bytes (%s) : %s",
+                    myPacket.getAddress().getCanonicalHostName(), e.getMessage()));
         }
     }
 

@@ -1,6 +1,5 @@
 package sojamo.osc;
 
-
 import java.util.List;
 import java.util.Observer;
 
@@ -10,7 +9,7 @@ public interface ITransfer {
 
     void send(IAddress theIAddress, byte[] theBytes);
 
-    void process(byte[] theData);
+    void process(byte[] theData, final NetAddress theSender);
 
     void immediately(OscMessage theMessage);
 

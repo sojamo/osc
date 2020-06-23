@@ -66,17 +66,17 @@ public class OscBundleTest {
         b3.add(m1, m2, m3);
         b2.add(b3);
 
-        /* bundle b2 has 3 elements at top level,
-         * nested elements are not counted.
+        /*
+         * bundle b2 has 3 elements at top level, nested elements are not counted.
          */
         assertEquals(3, b2.getPackets().size());
     }
 
     @Test
     public void testGetPackets() throws Exception {
-        /* 1. create Bundle
-         * 2. convert Bundle into bytes and then back into a Bundle
-         * 3. request all messages from a Bundle with OscParser.bytesToPackets()
+        /*
+         * 1. create Bundle 2. convert Bundle into bytes and then back into a Bundle 3.
+         * request all messages from a Bundle with OscParser.bytesToPackets()
          */
 
         /* b1: Bundle with 3 messages */

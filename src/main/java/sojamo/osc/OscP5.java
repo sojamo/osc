@@ -1,18 +1,16 @@
 package sojamo.osc;
 
-
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Observable;
-import java.util.Observer;
 
 public class OscP5 extends OSC {
 
-    public OscP5(final Object theApp,
-                 final int thePort) {
+    public OscP5(final Object theApp, final int thePort) {
+        this(theApp, NetAddress.DEFAULT_ADDR, thePort);
+    }
 
+    public OscP5(final Object theApp, final String theAddress, final int thePort) {
         /* let the superclass know about us */
-        super(thePort);
+        super(theAddress, thePort);
 
         /* Check if we are dealing with a PApplet */
         registerPApplet(theApp);
@@ -21,31 +19,29 @@ public class OscP5 extends OSC {
         subscribe(checkEventMethod(theApp, "oscEvent", oscMessageClass, ""));
         /* OK we are done with initializing OscP5 */
 
-
-        /* optional and just in case a sketch wants to capture the raw data
-         * packet, lets check if a method transferEvent exists which would then
-         * receive the raw bytes of a packet (which doesn't have to be an
-         * OSC packet). */
+        /*
+         * optional and just in case a sketch wants to capture the raw data packet, lets
+         * check if a method transferEvent exists which would then receive the raw bytes
+         * of a packet (which doesn't have to be an OSC packet).
+         */
         try {
             final Method method = theApp.getClass().getDeclaredMethod("transferEvent", byteArrayClass);
             method.setAccessible(true);
-            getTransfer().addObserver(new Observer() {
-                public void update(Observable o, Object arg) {
-                    try {
-                        method.invoke(theApp, (byte[]) arg);
-                    } catch (IllegalAccessException | InvocationTargetException e) {
-                    }
+            getTransfer().addObserver((o, arg) -> {
+                try {
+                    method.invoke(theApp, (byte[]) arg);
+                } catch (Exception e) {
+                    debug("OscP5 invoking transferEvent:", e.getMessage());
                 }
             });
         } catch (Exception e) {
+            debug("OscP5 invoking transferEvent:", e.getMessage());
         }
     }
 
-
     /**
-     * Check if we are dealing with a PApplet parent.
-     * If this is the case, register "dispose".
-     * Do so quietly, no error messages will be displayed.
+     * Check if we are dealing with a PApplet parent. If this is the case, register
+     * "dispose". Do so quietly, no error messages will be displayed.
      */
     private void registerPApplet(final Object theObject) {
 
@@ -63,30 +59,34 @@ public class OscP5 extends OSC {
                 parent = theObject;
             }
 
-            /* After we have found out about PApplet, register draw and dispose with the PApplet */
-            invoke(parent, "registerMethod", new Class[]{String.class, Object.class}, new Object[]{"pre", this});
-            invoke(parent, "registerMethod", new Class[]{String.class, Object.class}, new Object[]{"dispose", this});
+            /*
+             * After we have found out about PApplet, register draw and dispose with the
+             * PApplet
+             */
+            invoke(parent, "registerMethod", new Class[] { String.class, Object.class }, new Object[] { "pre", this });
+            invoke(parent, "registerMethod", new Class[] { String.class, Object.class },
+                    new Object[] { "dispose", this });
 
         } catch (Exception e) {
-            debug("OscP5.registerPApplet().", "Registering PApplet failed", e.getMessage());
+            debug("OscP5.registerPApplet():", "Registering PApplet failed", e.getMessage());
         }
 
     }
 
     /**
-     * PApplet specific method which is called automatically before the sketch
-     * calls its draw routine.
+     * PApplet specific method which is called automatically before the sketch calls
+     * its draw routine.
      */
     public void pre() {
         consume();
     }
 
     /**
-     * PApplet specific method which is called when a sketch
-     * finishes and closes down.
+     * PApplet specific method which is called when a sketch finishes and closes
+     * down.
      */
     public void dispose() {
-        debug("Disposing OscP5 instance");
+        debug("OscP5.dispose:", "Disposing OscP5 instance.");
         super.dispose();
     }
 

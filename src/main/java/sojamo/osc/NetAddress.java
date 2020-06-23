@@ -5,10 +5,11 @@ import java.net.InetSocketAddress;
 
 public class NetAddress extends InetSocketAddress implements IAddress {
 
-    static public final String LOCALHOST = "localhost";
+    static public final String LOCALHOST_ADDR = "localhost";
+    static public String DEFAULT_ADDR = "0.0.0.0";
 
     public NetAddress(final int thePort) {
-        this(LOCALHOST, thePort);
+        this(LOCALHOST_ADDR, thePort);
     }
 
     public NetAddress(final InetAddress theAddr, final int thePort) {
@@ -26,10 +27,8 @@ public class NetAddress extends InetSocketAddress implements IAddress {
 
     @Override
     public String toString() {
-        return "NetAddress{" +
-                " address:" + getAddress().getHostAddress() +
-                ", hostname:" + getHostName() +
-                ", port:" + getPort() +
-                " }";
+        return "NetAddress{" + " address:" + getAddress().getHostAddress() + ", hostname:" + getHostName() + ", port:"
+                + getPort() + " }";
     }
+
 }

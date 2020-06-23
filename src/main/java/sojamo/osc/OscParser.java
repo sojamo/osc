@@ -1,11 +1,9 @@
 package sojamo.osc;
 
-
 import java.util.*;
-
+import static sojamo.osc.OSC.debug;
 
 public class OscParser {
-
 
     private final static byte KOMMA = 0x2C;
 
@@ -13,8 +11,7 @@ public class OscParser {
         return getTypetag(new StringBuilder(), theMessage.getArguments());
     }
 
-    static protected String getTypetag(final StringBuilder theTypetag,
-                                       final Collection theData) {
+    static protected String getTypetag(final StringBuilder theTypetag, final Collection theData) {
         for (Object o : theData) {
             if (o == null) {
                 theTypetag.append('N'); /* Nil */
@@ -32,7 +29,7 @@ public class OscParser {
                 theTypetag.append('I');
             } else if (o instanceof OscSymbol) /* Symbol */ {
                 theTypetag.append('S');
-            } else if (o instanceof Character)  /* Character */ {
+            } else if (o instanceof Character) /* Character */ {
                 theTypetag.append('c');
             } else if (o instanceof byte[]) /* blob */ {
                 theTypetag.append('b');
@@ -59,9 +56,8 @@ public class OscParser {
         return collect;
     }
 
-    static public void bytesToPackets(final Map<OscMessage, Long> theCollection,
-                                      final byte[] theBytes,
-                                      final long theMillis) {
+    static public void bytesToPackets(final Map<OscMessage, Long> theCollection, final byte[] theBytes,
+            final long theMillis) {
 
         /* check if we are dealing with a valid OSC packet size */
         if (theBytes.length % 4 != 0) {
@@ -101,7 +97,6 @@ public class OscParser {
         }
     }
 
-
     private static InvalidOscMessage invalid(final byte[] theData) {
         return new InvalidOscMessage(theData);
     }
@@ -120,13 +115,10 @@ public class OscParser {
             }
         }
 
-
-
-
-		/* getting the address pattern */
+        /* getting the address pattern */
         final String address = (new String(Arrays.copyOfRange(theData, 0, n))).trim();
 
-		/* if the komma has been found, extract the typetag */
+        /* if the komma has been found, extract the typetag */
         final StringBuilder typetag = new StringBuilder();
 
         while (theData[n] != 0x00) {
@@ -136,16 +128,19 @@ public class OscParser {
             }
         }
 
-
-		/* now start converting bytes to osc arguments starting from index n */
+        /* now start converting bytes to osc arguments starting from index n */
         n = (n + (4 - n % 4));
 
         final List<Object> arguments = new ArrayList<>();
 
-        /* if there is a better way to avoid checking for ArrayIndexOutOfBoundsException, do implement */
+        /*
+         * TODO if there is a better way to avoid checking for
+         * ArrayIndexOutOfBoundsException, do implement
+         */
         try {
             bytesToArguments(theData, n, typetag.toString(), arguments);
         } catch (ArrayIndexOutOfBoundsException e) {
+            debug("OscParser.bytesToMessage", e.getMessage());
             return invalid(theData);
         }
 
@@ -153,11 +148,8 @@ public class OscParser {
         return new OscMessage(address, arguments);
     }
 
-
-    static private int bytesToArguments(final byte[] theByteArray,
-                                        final int theByteArrayPosition,
-                                        final String theTypetag,
-                                        final List<Object> theArguments) throws ArrayIndexOutOfBoundsException {
+    static private int bytesToArguments(final byte[] theByteArray, final int theByteArrayPosition,
+            final String theTypetag, final List<Object> theArguments) throws ArrayIndexOutOfBoundsException {
         int byteArrayPosition = theByteArrayPosition;
         int index = 0;
         final int length = theTypetag.length();
@@ -185,8 +177,7 @@ public class OscParser {
                 case ('s'): /* String */
                     int n1 = byteArrayPosition;
                     StringBuilder buffer = new StringBuilder();
-                    stringLoop:
-                    do {
+                    stringLoop: do {
                         if (theByteArray[n1] == 0x00) {
                             break stringLoop;
                         } else {
@@ -203,7 +194,8 @@ public class OscParser {
                     break;
                 case ('b'): /* blob */
                     int len = i(Arrays.copyOfRange(theByteArray, byteArrayPosition, byteArrayPosition += 4));
-                    theArguments.add(bytes(Arrays.copyOfRange(theByteArray, byteArrayPosition, byteArrayPosition += len)));
+                    theArguments
+                            .add(bytes(Arrays.copyOfRange(theByteArray, byteArrayPosition, byteArrayPosition += len)));
                     int mod = len % 4;
                     byteArrayPosition += mod == 0 ? 0 : 4 - mod;
                     break;
@@ -223,7 +215,8 @@ public class OscParser {
                     List<Object> sub = new ArrayList<>();
                     int p0 = theTypetag.indexOf('[') + 1;
                     int p1 = theTypetag.lastIndexOf(']');
-                    byteArrayPosition = bytesToArguments(theByteArray, byteArrayPosition, theTypetag.substring(p0, p1), sub);
+                    byteArrayPosition = bytesToArguments(theByteArray, byteArrayPosition, theTypetag.substring(p0, p1),
+                            sub);
                     index += p1 - p0;
                     theArguments.add(sub);
                     break;
@@ -234,13 +227,11 @@ public class OscParser {
         return byteArrayPosition;
     }
 
-
     static public byte[] messageToBytes(OscMessage theMessage) {
         final byte[] address = theMessage.getAddress().getBytes();
         final byte[] arguments = argumentsToBytes(theMessage.getArguments());
         return append(append(address, filln(address.length)), arguments);
     }
-
 
     static public byte[] argumentsToBytes(final Collection theData) {
         StringBuilder typetag = new StringBuilder();
@@ -249,9 +240,7 @@ public class OscParser {
         return append(append(String.valueOf(typetag).getBytes(), filln(typetag.length())), arguments);
     }
 
-
-    static private byte[] argumentsToBytes(final StringBuilder theTypetag,
-                                           final Collection theData) {
+    static private byte[] argumentsToBytes(final StringBuilder theTypetag, final Collection theData) {
         byte[] arguments = new byte[0];
 
         for (Object o : theData) {
@@ -300,49 +289,44 @@ public class OscParser {
                 arguments = append(arguments, argumentsToBytes(theTypetag, (Collection) o));
                 theTypetag.append(']');
             } else {
-                /* TODO
-                 * should arrays be accepted, if yes, how?
-                 * Treat as collection or iterate over array?
-                 * */
-                System.out.println("type not supported " + o.getClass().getSimpleName());
+                /*
+                 * TODO should arrays be accepted, if yes, how? Treat as collection or iterate
+                 * over array?
+                 */
+                debug("OscParser.argumentsToBytes:", "type not supported " + o.getClass().getSimpleName());
             }
         }
         return arguments;
     }
 
-
     static public byte[] bytes(final Object o) {
         return (o != null && o instanceof byte[]) ? (byte[]) o : new byte[0];
     }
-
 
     static public int i(byte abyte0[]) {
         return (abyte0[3] & 0xff) + ((abyte0[2] & 0xff) << 8) + ((abyte0[1] & 0xff) << 16) + ((abyte0[0] & 0xff) << 24);
     }
 
-
     static public long l(byte abyte0[]) {
-        return ((long) abyte0[7] & 255L) + (((long) abyte0[6] & 255L) << 8) + (((long) abyte0[5] & 255L) << 16) + (((long) abyte0[4] & 255L) << 24) + (((long) abyte0[3] & 255L) << 32)
-                + (((long) abyte0[2] & 255L) << 40) + (((long) abyte0[1] & 255L) << 48) + (((long) abyte0[0] & 255L) << 56);
+        return ((long) abyte0[7] & 255L) + (((long) abyte0[6] & 255L) << 8) + (((long) abyte0[5] & 255L) << 16)
+                + (((long) abyte0[4] & 255L) << 24) + (((long) abyte0[3] & 255L) << 32)
+                + (((long) abyte0[2] & 255L) << 40) + (((long) abyte0[1] & 255L) << 48)
+                + (((long) abyte0[0] & 255L) << 56);
     }
-
 
     static public float f(byte abyte0[]) {
         int i = i(abyte0);
         return Float.intBitsToFloat(i);
     }
 
-
     static public char c(byte abyte0[]) {
         return (char) i(abyte0);
     }
-
 
     static public double d(byte abyte0[]) {
         long l = l(abyte0);
         return Double.longBitsToDouble(l);
     }
-
 
     static public boolean startsWith(byte[] theData, byte[] thePattern) {
         byte[] section = Arrays.copyOfRange(theData, 0, thePattern.length);
@@ -356,7 +340,6 @@ public class OscParser {
         return abyte2;
     }
 
-
     static public byte[] toBytes(int i) {
         byte[] buffer = new byte[4];
         for (int n = buffer.length - 1; n >= 1; n--) {
@@ -366,7 +349,6 @@ public class OscParser {
         buffer[0] = (byte) i;
         return buffer;
     }
-
 
     static public byte[] toBytes(long i) {
         byte[] buffer = new byte[8];
@@ -388,7 +370,6 @@ public class OscParser {
         /* adds an additional 4 bytes if the len % 4 = 0, required for address */
         return new byte[4 - len % 4];
     }
-
 
     static public String asString(Collection theArguments) {
         StringBuilder s1 = new StringBuilder();

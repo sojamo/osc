@@ -70,11 +70,7 @@ public class OscTimetag {
 
     @Override
     public String toString() {
-        return "OscTimetag{" +
-                " long:" + timetag +
-                " date:" + getDate() +
-                " isNow:" + isImmediate() +
-                " }";
+        return "OscTimetag{" + " long:" + timetag + " date:" + getDate() + " isNow:" + isImmediate() + " }";
     }
 
 }

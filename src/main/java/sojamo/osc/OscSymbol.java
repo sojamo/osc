@@ -1,6 +1,5 @@
 package sojamo.osc;
 
-
 public class OscSymbol {
 
     private final String symbol;
@@ -17,7 +16,6 @@ public class OscSymbol {
     public String toString() {
         return symbol;
     }
-
 
     @Override
     public boolean equals(Object obj) {

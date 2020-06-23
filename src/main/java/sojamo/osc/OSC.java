@@ -1,61 +1,52 @@
 package sojamo.osc;
 
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 
-
 public class OSC {
 
-    static boolean DEBUG = true;
+    public final static String VERSION = "0.2.1";
+
+    public static boolean DEBUG = false;
     final private Collection<OscListener> listeners = new LinkedHashSet<>();
     final private ITransfer transfer;
 
-    /* TODO give examples that show how to handle OscListeners and Observers
-     * In contrast to the OscP5 class, the OSC class does
-     * not support automatic method detection using reflection.
-     * In order to receive an OSC message or a raw data packet,
-     * use Observers and/or OscListeners - examples are give
-     * inside the tests and inline below.
-     * */
+    /*
+     * TODO give examples that show how to handle OscListeners and Observers In
+     * contrast to the OscP5 class, the OSC class does not support automatic method
+     * detection using reflection. In order to receive an OSC message or a raw data
+     * packet, use Observers and/or OscListeners - examples are give inside the
+     * tests and inline below.
+     */
 
-
-    /* TODO how to consume messages, give examples
-     * Contrary to OscP5, the OSC class does not automatically
-     * consume received messages. Show how to do that when
+    /*
+     * TODO how to consume messages, give examples Contrary to OscP5, the OSC class
+     * does not automatically consume received messages. Show how to do that when
      * using this class.
-     * */
-
+     */
 
     /**
-     * Creates a now OSC instance using a DatagramSocket
-     * listening on port thePort.
+     * Creates a new OSC instance using a DatagramSocket listening on port thePort.
      */
-    public OSC(final int thePort) {
-        this(new UDPTransfer(thePort));
+    public OSC(final String theAddress, final int thePort) {
+        this(new UDPTransfer(theAddress, thePort));
     }
-
 
     public OSC(final ITransfer theTransfer) {
         transfer = theTransfer;
+        System.out.println("OSC library sojamo.osc " + VERSION + " https://github.com/sojamo/osc");
     }
 
     public ITransfer getTransfer() {
         return transfer;
     }
 
-
-    public OSC bind(final String theAddressPattern,
-                    final int theIndex,
-                    final Object theObject,
-                    final String theField) {
+    public OSC bind(final String theAddressPattern, final int theIndex, final Object theObject, final String theField) {
         return this;
     }
 
-    public OscListener subscribe(final String theAddressPattern,
-                                 final Object theObject,
-                                 final String theMethod) {
+    public OscListener subscribe(final String theAddressPattern, final Object theObject, final String theMethod) {
         return subscribe(checkEventMethod(theObject, theMethod, oscMessageClass, theAddressPattern));
     }
 
@@ -66,82 +57,63 @@ public class OSC {
         return theListener;
     }
 
-
     public OSC cancel(final OscListener theListener) {
         listeners.remove(theListener);
         return this;
     }
 
-
     public int consume() {
         final List<OscMessage> messages = transfer.consume();
-        for (OscMessage message : messages) {
-            for (OscListener listener : listeners) {
+        for (final OscMessage message : messages) {
+            for (final OscListener listener : listeners) {
                 listener.oscEvent(message);
             }
         }
         return messages.size();
     }
 
-
-    public OSC send(final IAddress theIAddress,
-                    final String theAddressPattern,
-                    final Object... theArguments) {
+    public OSC send(final IAddress theIAddress, final String theAddressPattern, final Object... theArguments) {
         sendPacket(theIAddress, new OscMessage(theAddressPattern, Arrays.asList(theArguments)));
         return this;
     }
 
-
-    public OSC send(final IAddress theIAddress,
-                    final OscMessage theMessage) {
+    public OSC send(final IAddress theIAddress, final OscMessage theMessage) {
         sendPacket(theIAddress, theMessage);
         return this;
     }
 
-
-    public OSC send(final IAddress theIAddress,
-                    final OscBundle theBundle) {
+    public OSC send(final IAddress theIAddress, final OscBundle theBundle) {
         sendPacket(theIAddress, theBundle);
         return this;
     }
 
-
-    private OSC sendPacket(final IAddress theIAddress,
-                           final OscPacket thePacket) {
+    private OSC sendPacket(final IAddress theIAddress, final OscPacket thePacket) {
         transfer.send(theIAddress, thePacket);
         return this;
     }
 
-
-    protected OSC invoke(final Object theObject,
-                         final String theMethodName,
-                         final Class<?>[] theClasses,
-                         final Object[] theArgs) {
+    protected OSC invoke(final Object theObject, final String theMethodName, final Class<?>[] theClasses,
+            final Object[] theArgs) {
         try {
-            Method method = theObject.getClass().getMethod(theMethodName, theClasses);
+            final Method method = theObject.getClass().getMethod(theMethodName, theClasses);
             try {
                 method.invoke(theObject, theArgs);
-            } catch (Exception e) {
-                debug("OSC.invoke().", "Invoking", theArgs, "failed", e.getMessage());
+            } catch (final Exception e) {
+                debug("OSC.invoke():", "Invoking", theArgs, "failed", e.getMessage());
             }
 
-        } catch (NoSuchMethodException e) {
-            debug("OSC.invoke().", "Invoking method", theMethodName, "failed", e.getMessage());
+        } catch (final NoSuchMethodException e) {
+            debug("OSC.invoke():", "Invoking method", theMethodName, "failed", e.getMessage());
         }
         return this;
     }
 
-
-    protected boolean match(final String s1,
-                            final String s2) {
+    protected boolean match(final String s1, final String s2) {
         return true;
     }
 
-
-    protected OscListener checkEventMethod(final Object theObject,
-                                           final String theMethod,
-                                           final Class<?>[] theClass,
-                                           final String theAddressPattern) {
+    protected OscListener checkEventMethod(final Object theObject, final String theMethod, final Class<?>[] theClass,
+            final String theAddressPattern) {
         try {
             final Method method = theObject.getClass().getDeclaredMethod(theMethod, theClass);
             method.setAccessible(true);
@@ -157,26 +129,23 @@ public class OSC {
                 }
             };
         } catch (SecurityException | NoSuchMethodException e1) {
-            debug("OSC.checkEventMethod failed", e1.getMessage());
+            debug("OSC.checkEventMethod: failed", e1.getMessage());
         }
         return dummy;
     }
-
 
     protected void dispose() {
         transfer.close();
     }
 
-
-    static protected final Class[] oscMessageClass = new Class[]{OscMessage.class};
-    static protected final Class[] byteArrayClass = new Class[]{byte[].class};
+    static protected final Class[] oscMessageClass = new Class[] { OscMessage.class };
+    static protected final Class[] byteArrayClass = new Class[] { byte[].class };
 
     static private final OscListener dummy = new OscListener() {
         @Override
-        public void oscEvent(OscMessage m) {
+        public void oscEvent(final OscMessage m) {
         }
     };
-
 
     static public void debug(final Object... strs) {
         if (DEBUG) {
@@ -184,38 +153,30 @@ public class OSC {
         }
     }
 
-
     static public void print(final Object... strs) {
-        for (Object str : strs) {
+        for (final Object str : strs) {
             System.out.print(str + " ");
         }
     }
-
 
     static public void println(final Object... strs) {
         print(strs);
         System.out.println();
     }
 
-
-    static public final char hexDigits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+    static public final char hexDigits[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E',
+            'F' };
 
     static public void printBytes(final byte[] byteArray) {
         for (int i = 0; i < byteArray.length; i++) {
 
-            println(
-                    (char) byteArray[i],
-                    "(",
-                    hexDigits[byteArray[i] >>> 4 & 0xf],
-                    hexDigits[byteArray[i] & 0xf],
-                    ") ");
+            println((char) byteArray[i], "(", hexDigits[byteArray[i] >>> 4 & 0xf], hexDigits[byteArray[i] & 0xf], ") ");
 
             if ((i + 1) % 4 == 0) {
                 System.out.print("\n");
             }
         }
     }
-
 
     static public int i(final Object o) {
         return i(o, Integer.MIN_VALUE);
@@ -248,7 +209,6 @@ public class OSC {
     static public float f(final String o, final float theDefault) {
         return isNumeric(o) ? Float.parseFloat(o) : theDefault;
     }
-
 
     static public double d(final Object o) {
         return d(o, Double.MIN_VALUE);
@@ -286,7 +246,7 @@ public class OSC {
         return (o != null) ? o.toString() : "";
     }
 
-    static public String s(final Number o, int theDec) {
+    static public String s(final Number o, final int theDec) {
         return (o != null) ? String.format("%." + theDec + "f", o.floatValue()) : "";
     }
 
@@ -311,7 +271,10 @@ public class OSC {
     }
 
     static public List toList(final Object o) {
-        return o != null ? (o instanceof List) ? (List) o : (o instanceof String) ? toList(o.toString()) : Collections.emptyList() : Collections.emptyList();
+        return o != null
+                ? (o instanceof List) ? (List) o
+                        : (o instanceof String) ? toList(o.toString()) : Collections.emptyList()
+                : Collections.emptyList();
     }
 
     static public byte[] bytes(final Object o) {
@@ -326,14 +289,15 @@ public class OSC {
         try {
             Thread.sleep(theMillis);
             return true;
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return false;
         }
     }
 
     static public String time() {
-        Calendar now = Calendar.getInstance();
-        return now.get(Calendar.HOUR_OF_DAY) + ":" + now.get(Calendar.MINUTE) + ":" + now.get(Calendar.SECOND) + "." + now.get(Calendar.MILLISECOND);
+        final Calendar now = Calendar.getInstance();
+        return now.get(Calendar.HOUR_OF_DAY) + ":" + now.get(Calendar.MINUTE) + ":" + now.get(Calendar.SECOND) + "."
+                + now.get(Calendar.MILLISECOND);
     }
 
 }

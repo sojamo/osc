@@ -8,12 +8,11 @@ public class OscBundle implements OscPacket {
 
     private final Collection<OscPacket> packets = new ArrayList<>();
     private final OscTimetag timetag = new OscTimetag();
-    static public final byte[] BUNDLE_AS_BYTES = {0x23, 0x62, 0x75, 0x6E, 0x64, 0x6C, 0x65, 0x00};
+    static public final byte[] BUNDLE_AS_BYTES = { 0x23, 0x62, 0x75, 0x6E, 0x64, 0x6C, 0x65, 0x00 };
     static public final int BUNDLE_HEADER_SIZE = 16;
 
     public OscBundle() {
     }
-
 
     public OscBundle(final OscPacket... thePackets) {
         this(Arrays.asList(thePackets));
@@ -67,10 +66,8 @@ public class OscBundle implements OscPacket {
 
     @Override
     public String toString() {
-        StringBuilder b = new StringBuilder().
-                append("OscBundle{").
-                append(" timetag:").append(timetag).
-                append(", packets:[");
+        StringBuilder b = new StringBuilder().append("OscBundle{").append(" timetag:").append(timetag)
+                .append(", packets:[");
         for (OscPacket packet : packets) {
             b.append(", ").append(packet.toString());
         }

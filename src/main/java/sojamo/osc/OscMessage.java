@@ -1,6 +1,5 @@
 package sojamo.osc;
 
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -9,72 +8,60 @@ import static sojamo.osc.OSC.*;
 
 public class OscMessage implements OscPacket {
 
-
     private final List<Object> arguments;
     private final String address;
+    private NetAddress receivedFrom;
 
     public OscMessage(final String theAddress) {
         this(theAddress, new ArrayList<>());
     }
 
-
     protected OscMessage(final OscMessage theMessage) {
         this(theMessage.getAddress(), theMessage.getArguments());
     }
 
-    public OscMessage(final String theAddress,
-                      final Object... args) {
+    public OscMessage(final String theAddress, final Object... args) {
         this(theAddress, Arrays.asList(args));
     }
 
-    public OscMessage(final String theAddress,
-                      final List theArguments) {
+    public OscMessage(final String theAddress, final List theArguments) {
         address = theAddress;
         arguments = theArguments;
-        /* TODO
-         * arguments and address: check for null
-         * arguments: should we do a (shallow) copy here?
-         * currently passed by reference.
+        /*
+         * TODO arguments and address: check for null arguments: should we do a
+         * (shallow) copy here? currently passed by reference.
          */
     }
-
 
     public OscMessage add(final Object... o) {
         arguments.addAll(Arrays.asList(o));
         return this;
     }
 
-
     public OscMessage add(final Object o) {
         arguments.add(o);
         return this;
     }
 
-
     public boolean isAddress(final String theAddress) {
         return getAddress().equals(theAddress);
     }
-
 
     public String getAddress() {
         return address;
     }
 
-
     public boolean isTypetag(final String theTypetag) {
         return getTypetag().equals(theTypetag);
     }
-
 
     public String getTypetag() {
         return OscParser.getTypetag(new StringBuilder(), arguments);
     }
 
-
     public List<Object> getArguments() {
         return arguments;
     }
-
 
     public int getIntAt(final int theIndex) {
         return i(get(theIndex));
@@ -140,6 +127,14 @@ public class OscMessage implements OscPacket {
         return getArguments().get(theIndex);
     }
 
+    public void setReceivedFrom(NetAddress theAddress) {
+        receivedFrom = theAddress;
+    }
+
+    public NetAddress receivedFrom() {
+        return receivedFrom;
+    }
+
     @Override
     public byte[] getBytes() {
         return OscParser.messageToBytes(this);
@@ -147,11 +142,9 @@ public class OscMessage implements OscPacket {
 
     @Override
     public String toString() {
-        String b = "OscMessage{" +
-                " address:" + getAddress() +
-                ", typetag:" + OscParser.getTypetag(this) +
-                ", arguments:" + OscParser.asString(arguments) +
-                "}";
+
+        String b = "OscMessage{" + " address: " + getAddress() + ", typetag: " + OscParser.getTypetag(this)
+                + ", arguments: " + OscParser.asString(arguments) + ", receivedFrom: " + receivedFrom + "}";
         return b;
     }
 
